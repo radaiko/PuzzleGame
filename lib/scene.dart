@@ -198,7 +198,9 @@ class _SceneViewerState extends State<SceneViewer> {
                 size: Size(constraints.maxWidth, constraints.maxHeight),
                 painter: _ScenePainter(
                   _renderer,
-                  widget.gameSpace.models.where((model) => model.visible).toList(),
+                  widget.gameSpace.models
+                      .where((model) => model.visible)
+                      .toList(),
                   deltaTime,
                 ),
               );
@@ -219,11 +221,7 @@ class _SceneViewerState extends State<SceneViewer> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                icon: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                icon: const Icon(Icons.close, color: Colors.white, size: 24),
                 padding: const EdgeInsets.all(8),
               ),
             ),
