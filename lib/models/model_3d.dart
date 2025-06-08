@@ -40,6 +40,9 @@ abstract class Model3D {
   /// Normals for lighting calculations
   List<Vector3> get normals => [];
 
+  /// Wireframe edges for outline drawing (override in subclasses)
+  List<List<int>> get wireframeEdges => [];
+
   /// Method to update model state (e.g., animations)
   void update(double deltaTime) {}
 

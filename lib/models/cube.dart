@@ -33,18 +33,18 @@ class Cube extends Model3D {
 
   @override
   List<int> get indices => [
-    // Front face
+    // Front face (counter-clockwise when viewed from outside)
     0, 1, 2, 0, 2, 3,
-    // Back face
-    4, 6, 5, 4, 7, 6,
-    // Left face
+    // Back face (counter-clockwise when viewed from outside)
+    5, 4, 7, 5, 7, 6,
+    // Left face (counter-clockwise when viewed from outside)
     4, 0, 3, 4, 3, 7,
-    // Right face
+    // Right face (counter-clockwise when viewed from outside)
     1, 5, 6, 1, 6, 2,
-    // Top face
+    // Top face (counter-clockwise when viewed from outside)
     3, 2, 6, 3, 6, 7,
-    // Bottom face
-    4, 5, 1, 4, 1, 0,
+    // Bottom face (counter-clockwise when viewed from outside)
+    0, 4, 5, 0, 5, 1,
   ];
 
   @override
@@ -62,16 +62,24 @@ class Cube extends Model3D {
 
   @override
   List<Color> get vertexColors => [
-    // Front face - red
-    CupertinoColors.systemRed,
-    CupertinoColors.systemRed,
-    CupertinoColors.systemRed,
-    CupertinoColors.systemRed,
-    // Back face - blue
-    CupertinoColors.systemBlue,
-    CupertinoColors.systemBlue,
-    CupertinoColors.systemBlue,
-    CupertinoColors.systemBlue,
+    const Color(0xFF808080), // Solid grey
+    const Color(0xFF808080),
+    const Color(0xFF808080),
+    const Color(0xFF808080),
+    const Color(0xFF808080),
+    const Color(0xFF808080),
+    const Color(0xFF808080),
+    const Color(0xFF808080),
+  ];
+
+  /// Get wireframe edges for drawing cube outline
+  List<List<int>> get wireframeEdges => [
+    // Front face edges
+    [0, 1], [1, 2], [2, 3], [3, 0],
+    // Back face edges
+    [4, 5], [5, 6], [6, 7], [7, 4],
+    // Connecting edges between front and back
+    [0, 4], [1, 5], [2, 6], [3, 7],
   ];
 
   @override

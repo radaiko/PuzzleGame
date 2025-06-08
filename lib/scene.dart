@@ -71,61 +71,6 @@ class Simple3DRenderer {
     return Vector2(screenX, screenY);
   }
 
-  void renderModel(Canvas canvas, Model3D model, Size size) {
-    // Skip invisible models
-    if (!model.visible) return;
-
-    final vertices = model.getTransformedVertices();
-    final indices = model.indices;
-    final colors = model.vertexColors;
-
-    // Project all vertices to screen space
-    final projectedVertices = <Vector2?>[];
-    for (final vertex in vertices) {
-      projectedVertices.add(projectPoint(vertex, size));
-    }
-
-    // Draw triangles
-    for (int i = 0; i < indices.length; i += 3) {
-      final i0 = indices[i];
-      final i1 = indices[i + 1];
-      final i2 = indices[i + 2];
-
-      final p0 = projectedVertices[i0];
-      final p1 = projectedVertices[i1];
-      final p2 = projectedVertices[i2];
-
-      // Skip if any vertex projection failed
-      if (p0 == null || p1 == null || p2 == null) continue;
-
-      // Simple back-face culling (check if triangle is clockwise)
-      final cross =
-          (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x);
-      if (cross < 0) continue; // Back-facing triangle
-
-      // Draw triangle
-      final paint = Paint()
-        ..color = colors.isNotEmpty ? colors[i0] : Colors.blue
-        ..style = PaintingStyle.fill;
-
-      final path = Path()
-        ..moveTo(p0.x, p0.y)
-        ..lineTo(p1.x, p1.y)
-        ..lineTo(p2.x, p2.y)
-        ..close();
-
-      canvas.drawPath(path, paint);
-
-      // Draw wireframe
-      final strokePaint = Paint()
-        ..color = Colors.black
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
-
-      canvas.drawPath(path, strokePaint);
-    }
-  }
-
   /// Render all models in the scene
   void renderScene(
     Canvas canvas,
@@ -138,9 +83,119 @@ class Simple3DRenderer {
       model.update(deltaTime);
     }
 
-    // Render all models
+    // Collect all triangles from all models with proper depth calculation for filled faces
+    final allTriangles = <Map<String, dynamic>>[];
+
     for (final model in models) {
-      renderModel(canvas, model, size);
+      if (!model.visible) continue;
+
+      final vertices = model.getTransformedVertices();
+      final indices = model.indices;
+      final colors = model.vertexColors;
+
+      // Project all vertices to screen space
+      final projectedVertices = <Vector2?>[];
+      for (final vertex in vertices) {
+        projectedVertices.add(projectPoint(vertex, size));
+      }
+
+      // Create triangles for this model
+      for (int i = 0; i < indices.length; i += 3) {
+        final i0 = indices[i];
+        final i1 = indices[i + 1];
+        final i2 = indices[i + 2];
+
+        final p0 = projectedVertices[i0];
+        final p1 = projectedVertices[i1];
+        final p2 = projectedVertices[i2];
+
+        // Skip if any vertex projection failed
+        if (p0 == null || p1 == null || p2 == null) continue;
+
+        // Calculate triangle center in world space
+        final center = Vector3(
+          (vertices[i0].x + vertices[i1].x + vertices[i2].x) / 3.0,
+          (vertices[i0].y + vertices[i1].y + vertices[i2].y) / 3.0,
+          (vertices[i0].z + vertices[i1].z + vertices[i2].z) / 3.0,
+        );
+
+        // Calculate actual distance from camera to triangle center
+        final distanceToCamera = (center - _cameraPosition).length;
+
+        allTriangles.add({
+          'p0': p0,
+          'p1': p1,
+          'p2': p2,
+          'color': colors.isNotEmpty ? colors[i0] : Colors.grey,
+          'depth': distanceToCamera,
+        });
+      }
+    }
+
+    // Sort all triangles by distance from camera (far to near)
+    allTriangles.sort((a, b) => b['depth'].compareTo(a['depth']));
+
+    // Draw all filled triangles in correct order
+    for (final triangle in allTriangles) {
+      final p0 = triangle['p0'] as Vector2;
+      final p1 = triangle['p1'] as Vector2;
+      final p2 = triangle['p2'] as Vector2;
+      final color = triangle['color'] as Color;
+
+      // Draw triangle with vertex colors - ensure full opacity
+      final paint = Paint()
+        ..color = Color.fromARGB(255, color.red, color.green, color.blue)
+        ..style = PaintingStyle.fill;
+
+      final path = Path()
+        ..moveTo(p0.x, p0.y)
+        ..lineTo(p1.x, p1.y)
+        ..lineTo(p2.x, p2.y)
+        ..close();
+
+      canvas.drawPath(path, paint);
+    }
+
+    // Draw wireframe edges on top of filled faces
+    for (final model in models) {
+      if (!model.visible) continue;
+
+      final vertices = model.getTransformedVertices();
+      final wireframeEdges = model.wireframeEdges;
+
+      // Project all vertices to screen space
+      final projectedVertices = <Vector2?>[];
+      for (final vertex in vertices) {
+        projectedVertices.add(projectPoint(vertex, size));
+      }
+
+      // Draw wireframe edges
+      final strokePaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+
+      for (final edge in wireframeEdges) {
+        if (edge.length != 2) continue;
+
+        final startIdx = edge[0];
+        final endIdx = edge[1];
+
+        if (startIdx >= projectedVertices.length ||
+            endIdx >= projectedVertices.length)
+          continue;
+
+        final start = projectedVertices[startIdx];
+        final end = projectedVertices[endIdx];
+
+        if (start != null && end != null) {
+          canvas.drawLine(
+            Offset(start.x, start.y),
+            Offset(end.x, end.y),
+            strokePaint,
+          );
+        }
+      }
     }
   }
 }
