@@ -62,11 +62,17 @@ class Simple3DRenderer {
     final viewPoint =
         _viewMatrix * Vector4(worldPoint.x, worldPoint.y, worldPoint.z, 1.0);
 
-    // Simple orthographic projection - just use x,y coordinates
-    // Scale and center the coordinates
-    final scale = math.min(screenSize.width, screenSize.height) * 0.1;
-    final screenX = screenSize.width * 0.5 + viewPoint.x * scale;
-    final screenY = screenSize.height * 0.5 - viewPoint.y * scale;
+    // Perspective projection based on camera distance
+    // Use the z-distance from camera for perspective scaling
+    final distance = math.max(
+      0.1,
+      viewPoint.z.abs(),
+    ); // Prevent division by zero
+    final perspectiveScale =
+        math.min(screenSize.width, screenSize.height) * 0.5 / distance;
+
+    final screenX = screenSize.width * 0.5 + viewPoint.x * perspectiveScale;
+    final screenY = screenSize.height * 0.5 - viewPoint.y * perspectiveScale;
 
     return Vector2(screenX, screenY);
   }
@@ -213,6 +219,7 @@ class SceneViewer extends StatefulWidget {
 class _SceneViewerState extends State<SceneViewer> {
   late final Simple3DRenderer _renderer;
   late DateTime _lastFrameTime;
+  double _previousScale = 1.0;
 
   @override
   void initState() {
@@ -226,6 +233,10 @@ class _SceneViewerState extends State<SceneViewer> {
     return Stack(
       children: [
         GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onScaleStart: (details) {
+            _previousScale = 1.0;
+          },
           onScaleUpdate: (details) {
             // Handle both rotation (when pointers == 1) and zoom (when pointers > 1)
             if (details.pointerCount == 1) {
@@ -233,12 +244,14 @@ class _SceneViewerState extends State<SceneViewer> {
               final deltaX = details.focalPointDelta.dx * 0.01;
               final deltaY = details.focalPointDelta.dy * 0.01;
               setState(() {
-                _renderer.rotate(-deltaX, -deltaY);
+                _renderer.rotate(-deltaX, deltaY);
               });
             } else {
               // Multiple fingers - handle zoom
+              final scaleDelta = details.scale / _previousScale;
+              _previousScale = details.scale;
               setState(() {
-                _renderer.zoom(1.0 / details.scale);
+                _renderer.zoom(1.0 / scaleDelta);
               });
             }
           },
