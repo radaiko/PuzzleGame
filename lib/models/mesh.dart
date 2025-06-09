@@ -3,7 +3,7 @@ import 'package:puzzle_game/models/face.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 class Mesh {
-  List<BFace> _faces;
+  final List<BFace> _faces;
 
   Mesh({required List<BFace> faces}) : _faces = faces;
 
@@ -28,5 +28,55 @@ class Mesh {
       }
     }
     return vertexSet.toList();
+  }
+
+  // static basic forms of meshes
+  static Mesh cube() {
+    return Mesh(
+      faces: [
+        // Front face
+        QFace.fromPoints(
+          Vector3(-0.5, -0.5, 0.5),
+          Vector3(0.5, -0.5, 0.5),
+          Vector3(0.5, 0.5, 0.5),
+          Vector3(-0.5, 0.5, 0.5),
+        ),
+        // Back face
+        QFace.fromPoints(
+          Vector3(0.5, -0.5, -0.5),
+          Vector3(-0.5, -0.5, -0.5),
+          Vector3(-0.5, 0.5, -0.5),
+          Vector3(0.5, 0.5, -0.5),
+        ),
+        // Left face
+        QFace.fromPoints(
+          Vector3(-0.5, -0.5, -0.5),
+          Vector3(-0.5, -0.5, 0.5),
+          Vector3(-0.5, 0.5, 0.5),
+          Vector3(-0.5, 0.5, -0.5),
+        ),
+        // Right face
+        QFace.fromPoints(
+          Vector3(0.5, -0.5, 0.5),
+          Vector3(0.5, -0.5, -0.5),
+          Vector3(0.5, 0.5, -0.5),
+          Vector3(0.5, 0.5, 0.5),
+        ),
+        // Top face
+        QFace.fromPoints(
+          Vector3(-0.5, 0.5, 0.5),
+          Vector3(0.5, 0.5, 0.5),
+          Vector3(0.5, 0.5, -0.5),
+          Vector3(-0.5, 0.5, -0.5),
+        ),
+        // Bottom face
+        QFace.fromPoints(
+          Vector3(-0.5, -0.5, -0.5),
+          Vector3(0.5, -0.5, -0.5),
+          Vector3(0.5, -0.5, 0.5),
+          Vector3(-0.5, -0.5, 0.5),
+        ),
+      ],
+    );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:puzzle_game/models/cube.dart';
-import 'package:puzzle_game/models/model_3d.dart';
+import 'package:puzzle_game/models/model.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 class GameSpace {
@@ -46,9 +46,6 @@ class GameSpace {
       if (x < _width && y < _height && z < _depth) {
         _space[x][y][z] = Cube(
           position: Vector3(x.toDouble(), y.toDouble(), z.toDouble()),
-          rotation: Vector3.zero(),
-          scale: Vector3.all(1.0),
-          visible: true,
         );
       }
     }
@@ -115,8 +112,8 @@ class GameSpace {
     // TODO: redraw new state of the game
   }
 
-  List<Model3D> get models {
-    List<Model3D> models = [];
+  List<Model> get models {
+    List<Model> models = [];
     for (var layer in _space) {
       for (var row in layer) {
         for (var cube in row) {

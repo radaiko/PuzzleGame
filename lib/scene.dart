@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:puzzle_game/logic/game_space.dart';
+import 'package:puzzle_game/models/model.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
-import 'models/model_3d.dart';
 import 'dart:math' as math;
 
 // Simplified 3D renderer using basic Flutter Canvas
@@ -80,20 +80,15 @@ class Simple3DRenderer {
   /// Render all models in the scene
   void renderScene(
     Canvas canvas,
-    List<Model3D> models,
+    List<Model> models,
     Size size,
     double deltaTime,
   ) {
-    // Update all models
-    for (final model in models) {
-      model.update(deltaTime);
-    }
-
     // Collect all triangles from all models with proper depth calculation for filled faces
     final allTriangles = <Map<String, dynamic>>[];
 
     for (final model in models) {
-      if (!model.visible) continue;
+      if (!model.isVisible) continue;
 
       final vertices = model.getTransformedVertices();
       final indices = model.indices;
@@ -161,48 +156,6 @@ class Simple3DRenderer {
 
       canvas.drawPath(path, paint);
     }
-
-    // Draw wireframe edges on top of filled faces
-    for (final model in models) {
-      if (!model.visible) continue;
-
-      final vertices = model.getTransformedVertices();
-      final wireframeEdges = model.wireframeEdges;
-
-      // Project all vertices to screen space
-      final projectedVertices = <Vector2?>[];
-      for (final vertex in vertices) {
-        projectedVertices.add(projectPoint(vertex, size));
-      }
-
-      // Draw wireframe edges
-      final strokePaint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
-
-      for (final edge in wireframeEdges) {
-        if (edge.length != 2) continue;
-
-        final startIdx = edge[0];
-        final endIdx = edge[1];
-
-        if (startIdx >= projectedVertices.length ||
-            endIdx >= projectedVertices.length)
-          continue;
-
-        final start = projectedVertices[startIdx];
-        final end = projectedVertices[endIdx];
-
-        if (start != null && end != null) {
-          canvas.drawLine(
-            Offset(start.x, start.y),
-            Offset(end.x, end.y),
-            strokePaint,
-          );
-        }
-      }
-    }
   }
 }
 
@@ -267,7 +220,7 @@ class _SceneViewerState extends State<SceneViewer> {
                 painter: _ScenePainter(
                   _renderer,
                   widget.gameSpace.models
-                      .where((model) => model.visible)
+                      .where((model) => model.isVisible)
                       .toList(),
                   deltaTime,
                 ),
@@ -303,7 +256,7 @@ class _SceneViewerState extends State<SceneViewer> {
 // Custom painter to render the scene
 class _ScenePainter extends CustomPainter {
   final Simple3DRenderer renderer;
-  final List<Model3D> models;
+  final List<Model> models;
   final double deltaTime;
 
   _ScenePainter(this.renderer, this.models, this.deltaTime);
