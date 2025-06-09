@@ -86,6 +86,7 @@ class Simple3DRenderer {
   ) {
     // Collect all triangles from all models with proper depth calculation for filled faces
     final allTriangles = <Map<String, dynamic>>[];
+    final allEdges = <Map<String, dynamic>>[];
 
     for (final model in models) {
       if (!model.isVisible) continue;
@@ -93,6 +94,7 @@ class Simple3DRenderer {
       final vertices = model.getTransformedVertices();
       final indices = model.indices;
       final colors = model.vertexColors;
+      final faces = model.faces;
 
       // Project all vertices to screen space
       final projectedVertices = <Vector2?>[];
@@ -131,6 +133,61 @@ class Simple3DRenderer {
           'depth': distanceToCamera,
         });
       }
+
+      // Collect edges from visible faces
+      for (final face in faces) {
+        // Check if face is visible by checking if its normal faces the camera
+        final faceVertices = face.points;
+        if (faceVertices.length < 3) continue;
+
+        // Get face vertices in world space
+        final worldVertices = faceVertices.map((vertex) {
+          final index = model.vertices.indexOf(vertex);
+          return index >= 0 ? vertices[index] : vertex;
+        }).toList();
+
+        if (worldVertices.length < 3) continue;
+
+        // Calculate face normal
+        final v1 = worldVertices[1] - worldVertices[0];
+        final v2 = worldVertices[2] - worldVertices[0];
+        final normal = v1.cross(v2).normalized();
+
+        // Calculate view direction from face center to camera
+        final faceCenter =
+            worldVertices.fold(Vector3.zero(), (sum, v) => sum + v) /
+            worldVertices.length.toDouble();
+        final viewDirection = (_cameraPosition - faceCenter).normalized();
+
+        // Only process edges if face is visible (normal points toward camera)
+        if (normal.dot(viewDirection) > 0) {
+          final edges = face.edges;
+          for (final edge in edges) {
+            final startIndex = model.vertices.indexOf(edge.start);
+            final endIndex = model.vertices.indexOf(edge.end);
+
+            if (startIndex >= 0 && endIndex >= 0) {
+              final projectedStart = projectedVertices[startIndex];
+              final projectedEnd = projectedVertices[endIndex];
+
+              if (projectedStart != null && projectedEnd != null) {
+                // Calculate edge depth (average of start and end points)
+                final edgeCenter =
+                    (vertices[startIndex] + vertices[endIndex]) * 0.5;
+                final edgeDepth = (edgeCenter - _cameraPosition).length;
+
+                allEdges.add({
+                  'start': projectedStart,
+                  'end': projectedEnd,
+                  'depth': edgeDepth,
+                  'worldStart': vertices[startIndex],
+                  'worldEnd': vertices[endIndex],
+                });
+              }
+            }
+          }
+        }
+      }
     }
 
     // Sort all triangles by distance from camera (far to near)
@@ -160,6 +217,71 @@ class Simple3DRenderer {
         ..close();
 
       canvas.drawPath(path, paint);
+    }
+
+    // Find hull edges - edges that belong to only one visible face
+    final hullEdges = _findHullEdges(allEdges);
+
+    // Draw hull edges as black lines
+    final edgePaint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    for (final edge in hullEdges) {
+      final start = edge['start'] as Vector2;
+      final end = edge['end'] as Vector2;
+
+      canvas.drawLine(
+        Offset(start.x, start.y),
+        Offset(end.x, end.y),
+        edgePaint,
+      );
+    }
+  }
+
+  /// Find hull edges - edges that appear only once (on the outside hull)
+  List<Map<String, dynamic>> _findHullEdges(
+    List<Map<String, dynamic>> allEdges,
+  ) {
+    final edgeCount = <String, Map<String, dynamic>>{};
+
+    // Count occurrences of each edge
+    for (final edge in allEdges) {
+      final worldStart = edge['worldStart'] as Vector3;
+      final worldEnd = edge['worldEnd'] as Vector3;
+
+      // Create a normalized edge key using world coordinates
+      final key = _createEdgeKey(worldStart, worldEnd);
+
+      if (edgeCount.containsKey(key)) {
+        // Edge appears more than once, remove it (interior edge)
+        edgeCount.remove(key);
+      } else {
+        // First occurrence of this edge
+        edgeCount[key] = edge;
+      }
+    }
+
+    return edgeCount.values.toList();
+  }
+
+  /// Create a consistent key for an edge regardless of direction
+  String _createEdgeKey(Vector3 start, Vector3 end) {
+    // Ensure consistent ordering by using smaller coordinates first
+    final p1 = start;
+    final p2 = end;
+
+    // Compare points lexicographically (x, then y, then z)
+    bool p1IsSmaller =
+        p1.x < p2.x ||
+        (p1.x == p2.x && p1.y < p2.y) ||
+        (p1.x == p2.x && p1.y == p2.y && p1.z < p2.z);
+
+    if (p1IsSmaller) {
+      return '${p1.x.toStringAsFixed(3)},${p1.y.toStringAsFixed(3)},${p1.z.toStringAsFixed(3)}-${p2.x.toStringAsFixed(3)},${p2.y.toStringAsFixed(3)},${p2.z.toStringAsFixed(3)}';
+    } else {
+      return '${p2.x.toStringAsFixed(3)},${p2.y.toStringAsFixed(3)},${p2.z.toStringAsFixed(3)}-${p1.x.toStringAsFixed(3)},${p1.y.toStringAsFixed(3)},${p1.z.toStringAsFixed(3)}';
     }
   }
 }
