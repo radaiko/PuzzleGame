@@ -13,7 +13,7 @@ abstract class BFace {
 
   BFace() {
     if (!_isValid()) {
-      throw ArgumentError('Edges do not form a valid quadrilateral face');
+      throw ArgumentError('Edges do not form a valid face');
     }
   }
 
@@ -54,10 +54,10 @@ class QFace extends BFace {
   // internal methods
   @override
   bool _isValid() {
-    return _edge1.start == _edge2.start &&
-        _edge2.start == _edge3.start &&
-        _edge3.start == _edge4.start &&
-        _edge4.start == _edge1.start;
+    return _edge1.end == _edge2.start &&
+        _edge2.end == _edge3.start &&
+        _edge3.end == _edge4.start &&
+        _edge4.end == _edge1.start;
   }
 }
 
@@ -77,11 +77,17 @@ class TFace extends BFace {
   // constructor
   TFace(this._edge1, this._edge2, this._edge3) : super();
 
+  TFace.fromPoints(Vector3 p1, Vector3 p2, Vector3 p3)
+    : _edge1 = Edge(p1, p2),
+      _edge2 = Edge(p2, p3),
+      _edge3 = Edge(p3, p1),
+      super();
+
   // internal methods
   @override
   bool _isValid() {
-    return _edge1.start == _edge2.start &&
-        _edge2.start == _edge3.start &&
-        _edge3.start == _edge1.start;
+    return _edge1.end == _edge2.start &&
+        _edge2.end == _edge3.start &&
+        _edge3.end == _edge1.start;
   }
 }

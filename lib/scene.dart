@@ -145,7 +145,12 @@ class Simple3DRenderer {
 
       // Draw triangle with vertex colors - ensure full opacity
       final paint = Paint()
-        ..color = Color.fromARGB(255, color.red, color.green, color.blue)
+        ..color = Color.fromARGB(
+          255,
+          (color.r * 255.0).round(),
+          (color.g * 255.0).round(),
+          (color.b * 255.0).round(),
+        )
         ..style = PaintingStyle.fill;
 
       final path = Path()
@@ -235,7 +240,7 @@ class _SceneViewerState extends State<SceneViewer> {
           child: SafeArea(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
